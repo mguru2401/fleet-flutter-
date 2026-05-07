@@ -10,6 +10,7 @@ class ApiService {
   static const String carsBaseUrl = '$baseUrl/cars';
   static const String categoriesBaseUrl = '$baseUrl/categories';
   static const String advancesBaseUrl = '$baseUrl/advances';
+  static const String salaryBaseUrl = '$baseUrl/salary';
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -61,6 +62,20 @@ class ApiService {
       return jsonDecode(response.body);
     } catch (e) {
       return {'success': false, 'message': 'Logout error: $e'};
+    }
+  }
+
+  // Profile
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$authBaseUrl/profile'),
+        headers: headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error fetching profile: $e'};
     }
   }
 
@@ -472,6 +487,37 @@ class ApiService {
       return jsonDecode(response.body);
     } catch (e) {
       return {'success': false, 'message': 'Error deleting category: $e'};
+    }
+  }
+
+  // Salary
+  static Future<Map<String, dynamic>> setDesiredSalary(double desiredSalary) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$salaryBaseUrl/set-desired-salary'),
+        headers: headers,
+        body: jsonEncode({'desired_salary': desiredSalary}),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error setting desired salary: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getGoalStatus({int? month, int? year}) async {
+    try {
+      final headers = await _getHeaders();
+      Map<String, String> queryParams = {};
+      if (month != null) queryParams['month'] = month.toString();
+      if (year != null) queryParams['year'] = year.toString();
+
+      final uri = Uri.parse('$salaryBaseUrl/goal-status').replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error fetching goal status: $e'};
     }
   }
 }

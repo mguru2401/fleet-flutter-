@@ -10,6 +10,7 @@ class Trip {
   final String category;
   final String? driverId;
   final String? carId;
+  final double? commission;
 
   Trip({
     this.id,
@@ -23,6 +24,7 @@ class Trip {
     required this.category,
     this.driverId,
     this.carId,
+    this.commission,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class Trip {
       category: json['category'] ?? '',
       driverId: json['driver_id']?.toString(),
       carId: json['car_id']?.toString(),
+      commission: json['commission'] != null ? (json['commission'] as num).toDouble() : null,
     );
   }
 
@@ -52,6 +55,7 @@ class Trip {
       'trip_rate': tripRate,
       'category': category,
       'car_id': carId,
+      if (commission != null) 'commission': commission,
     };
   }
 }

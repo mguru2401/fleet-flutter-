@@ -40,7 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return [
         const TripsScreen(),
         const ExpensesScreen(),
-        const SettingsScreen(),
+        SettingsScreen(role: _role),
       ];
     }
     return [
@@ -49,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const TripsScreen(),
       const ExpensesScreen(),
       const AdvancesScreen(),
-      const SettingsScreen(),
+      SettingsScreen(role: _role),
     ];
   }
 

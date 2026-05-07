@@ -27,6 +27,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
   late TextEditingController _dropLocationController;
   late TextEditingController _mileageController;
   late TextEditingController _tripRateController;
+  late TextEditingController _commissionController;
   String? _category;
 
   @override
@@ -39,6 +40,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
     _dropLocationController = TextEditingController(text: widget.trip?.dropLocation ?? '');
     _mileageController = TextEditingController(text: widget.trip?.mileage.toString() ?? '');
     _tripRateController = TextEditingController(text: widget.trip?.tripRate.toString() ?? '');
+    _commissionController = TextEditingController(text: widget.trip?.commission?.toString() ?? '');
     _selectedCarId = widget.trip?.carId;
     _category = widget.trip?.category;
 
@@ -103,6 +105,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
     _dropLocationController.dispose();
     _mileageController.dispose();
     _tripRateController.dispose();
+    _commissionController.dispose();
     super.dispose();
   }
 
@@ -149,6 +152,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
       'mileage': double.parse(_mileageController.text),
       'trip_rate': double.parse(_tripRateController.text),
       'category': _category ?? 'other',
+      if (_commissionController.text.isNotEmpty) 'commission': double.parse(_commissionController.text),
       if (driverId != null) 'driver_id': driverId,
       'car_id': _selectedCarId,
     };
@@ -293,6 +297,24 @@ class _TripFormScreenState extends State<TripFormScreen> {
                       onChanged: (v) => setState(() => _category = v),
                       validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                     ),
+                    if (_category?.toLowerCase() == 'uber' || _category?.toLowerCase() == 'ola') ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _commissionController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Commission (Uber/Ola Only)',
+                          border: OutlineInputBorder(),
+                          prefixText: '₹',
+                        ),
+                        validator: (v) {
+                          if ((_category?.toLowerCase() == 'uber' || _category?.toLowerCase() == 'ola') && (v == null || v.isEmpty)) {
+                            return 'Commission is required for Uber/Ola';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _saveTrip,

@@ -15,6 +15,7 @@ class TripsScreen extends StatefulWidget {
 class _TripsScreenState extends State<TripsScreen> {
   List<Trip> _trips = [];
   bool _isLoading = false;
+  Map<String, dynamic>? _goalStatus;
 
   List<String> _validCategories = ['all'];
   String _selectedCategory = 'all';
@@ -31,6 +32,24 @@ class _TripsScreenState extends State<TripsScreen> {
     super.initState();
     _fetchCategories();
     _fetchTrips();
+    _fetchGoalStatus();
+  }
+
+  Future<void> _fetchGoalStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString('user_role') ?? 'admin';
+    if (role != 'driver') return;
+
+    final now = DateTime.now();
+    final month = _selectedMonth ?? now.month;
+    final year = _selectedYear ?? now.year;
+
+    final response = await ApiService.getGoalStatus(month: month, year: year);
+    if (response['success'] == true) {
+      setState(() {
+        _goalStatus = response['data'];
+      });
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -45,6 +64,7 @@ class _TripsScreenState extends State<TripsScreen> {
 
   Future<void> _fetchTrips() async {
     setState(() => _isLoading = true);
+    _fetchGoalStatus(); // Fetch goal status whenever trips are fetched
     
     final prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('user_role') ?? 'admin';
@@ -79,7 +99,6 @@ class _TripsScreenState extends State<TripsScreen> {
   }
 
   Future<void> _deleteTrip(String tripId) async {
-    // ... (unchanged)
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -105,6 +124,54 @@ class _TripsScreenState extends State<TripsScreen> {
     }
   }
 
+  Widget _buildGoalProgressBar() {
+    if (_goalStatus == null) return const SizedBox.shrink();
+
+    final achievement = (_goalStatus!['achievement_percentage'] as num?)?.toDouble() ?? 0.0;
+    final soFar = _goalStatus!['so_far_salary'] ?? 0;
+    final remaining = _goalStatus!['remaining_to_goal'] ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Goal Progress Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('${achievement.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2575FC))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: achievement / 100,
+              minHeight: 12,
+              backgroundColor: Colors.grey[200],
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2575FC)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('So Far: ₹$soFar', style: const TextStyle(fontSize: 13, color: Colors.green)),
+              Text('Remaining: ₹$remaining', style: const TextStyle(fontSize: 13, color: Colors.orange)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,6 +187,7 @@ class _TripsScreenState extends State<TripsScreen> {
       ),
       body: Column(
         children: [
+          _buildGoalProgressBar(),
           // Filter Bar
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),

@@ -316,13 +316,19 @@ class _TripsScreenState extends State<TripsScreen> {
                                     children: [
                                       Text('Mileage: ${trip.mileage} km'),
                                       if (trip.category.toLowerCase() == 'uber' || trip.category.toLowerCase() == 'ola')
-                                        Text(
-                                          '₹${trip.tripRate} - ₹${trip.commission ?? 0} = ₹${trip.netAmount?.toStringAsFixed(2)}',
-                                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                                        Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              TextSpan(text: '₹${trip.tripRate}'),
+                                              TextSpan(text: ' - ₹${trip.commission ?? 0}', style: const TextStyle(color: Colors.red)),
+                                              TextSpan(text: ' = ₹${trip.netAmount?.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green)),
+                                            ],
+                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                          ),
                                         )
                                       else
                                         Text(
-                                          'Net: ₹${trip.netAmount?.toStringAsFixed(2)}',
+                                          '₹${trip.netAmount?.toStringAsFixed(2)}',
                                           style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                                         ),
                                     ],

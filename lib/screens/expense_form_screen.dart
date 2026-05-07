@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../models/expense_model.dart';
 
@@ -14,6 +15,9 @@ class ExpenseFormScreen extends StatefulWidget {
 class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  String _role = 'driver';
+  List<dynamic> _cars = [];
+  String? _selectedCarId;
 
   late TextEditingController _dateController;
   late TextEditingController _reasonController;
@@ -27,6 +31,27 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     _reasonController = TextEditingController(text: widget.expense?.reason ?? '');
     _descriptionController = TextEditingController(text: widget.expense?.description ?? '');
     _amountController = TextEditingController(text: widget.expense?.amount.toString() ?? '');
+    _selectedCarId = widget.expense?.carId;
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _role = prefs.getString('user_role') ?? 'driver';
+    });
+    if (_role == 'admin') {
+      _fetchCars();
+    }
+  }
+
+  Future<void> _fetchCars() async {
+    final response = await ApiService.getCars();
+    if (response['success'] == true) {
+      setState(() {
+        _cars = response['data'] ?? [];
+      });
+    }
   }
 
   @override
@@ -62,6 +87,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
       'reason': _reasonController.text,
       'description': _descriptionController.text,
       'amount': double.parse(_amountController.text),
+      'car_id': _selectedCarId,
     };
 
     final Map<String, dynamic> response;
@@ -86,10 +112,6 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.expense == null ? 'Add Expense' : 'Edit Expense'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -100,6 +122,24 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (_role == 'admin') ...[
+                      DropdownButtonFormField<String>(
+                        value: _selectedCarId,
+                        decoration: const InputDecoration(
+                          labelText: 'Select Car (Optional)',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.directions_car),
+                        ),
+                        items: _cars.map((car) {
+                          return DropdownMenuItem<String>(
+                            value: car['id'].toString(),
+                            child: Text("${car['name']} (${car['car_no']})"),
+                          );
+                        }).toList(),
+                        onChanged: (val) => setState(() => _selectedCarId = val),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     TextFormField(
                       controller: _dateController,
                       decoration: const InputDecoration(labelText: 'Date', border: OutlineInputBorder(), prefixIcon: Icon(Icons.calendar_today)),

@@ -2,6 +2,7 @@ class Expense {
   final String? id;
   final String? driverId;
   final String? carNo;
+  final String? carId;
   final String? driverName;
   final String date;
   final String reason;
@@ -14,6 +15,7 @@ class Expense {
     this.id,
     this.driverId,
     this.carNo,
+    this.carId,
     this.driverName,
     required this.date,
     required this.reason,
@@ -28,6 +30,7 @@ class Expense {
       id: json['id']?.toString() ?? json['_id']?.toString(),
       driverId: json['driver_id']?.toString(),
       carNo: json['car_no']?.toString(),
+      carId: json['car_id']?.toString(),
       driverName: json['driver_name']?.toString(),
       date: json['date'] ?? '',
       reason: json['reason'] ?? '',
@@ -44,6 +47,7 @@ class Expense {
       'reason': reason,
       'description': description,
       'amount': amount,
+      'car_id': carId,
     };
   }
 }

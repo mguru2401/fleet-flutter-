@@ -13,30 +13,46 @@ class AdvancesScreen extends StatefulWidget {
 
 class _AdvancesScreenState extends State<AdvancesScreen> {
   List<Advance> _advances = [];
+  List<dynamic> _drivers = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchAdvances();
+    _fetchInitialData();
+  }
+
+  Future<void> _fetchInitialData() async {
+    setState(() => _isLoading = true);
+    await Future.wait([
+      _fetchAdvances(),
+      _fetchDrivers(),
+    ]);
+    setState(() => _isLoading = false);
   }
 
   Future<void> _fetchAdvances() async {
-    setState(() => _isLoading = true);
     final response = await ApiService.getAdvances();
     if (response['success'] == true) {
       final List<dynamic> data = response['data'] ?? [];
       setState(() {
         _advances = data.map((json) => Advance.fromJson(json)).toList();
-        // Filter by driver if provided
         if (widget.driver != null) {
           _advances = _advances.where((a) => a.driverId == widget.driver!['id'].toString()).toList();
         }
-        _isLoading = false;
       });
     } else {
-      setState(() => _isLoading = false);
-      Fluttertoast.showToast(msg: "Error: ${response['message']}");
+      Fluttertoast.showToast(msg: "Failed to load advances: ${response['message']}");
+    }
+  }
+
+  Future<void> _fetchDrivers() async {
+    final response = await ApiService.getUsers();
+    if (response['success'] == true) {
+      final List<dynamic> allUsers = response['data'] ?? [];
+      setState(() {
+        _drivers = allUsers.where((u) => u['role'] == 'driver').toList();
+      });
     }
   }
 
@@ -45,48 +61,100 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
     final amountController = TextEditingController(text: isEditing ? advance.amount.toString() : '');
     final descController = TextEditingController(text: isEditing ? advance.description : '');
     final dateController = TextEditingController(text: isEditing ? advance.date : DateTime.now().toString().split(' ')[0]);
+    
+    String? selectedDriverId = isEditing ? advance.driverId : widget.driver?['id']?.toString();
+    String selectedStatus = isEditing ? advance.status : 'unpaid';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isEditing ? 'Edit Advance' : 'Create Advance for ${widget.driver?['name'] ?? 'Driver'}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: amountController, decoration: const InputDecoration(labelText: 'Amount (₹)'), keyboardType: TextInputType.number),
-            TextField(controller: dateController, decoration: const InputDecoration(labelText: 'Date (YYYY-MM-DD)')),
-            TextField(controller: descController, decoration: const InputDecoration(labelText: 'Description')),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(isEditing ? 'Update Advance' : 'New Advance'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.driver == null || isEditing) ...[
+                  DropdownButtonFormField<String>(
+                    value: selectedDriverId,
+                    decoration: const InputDecoration(labelText: 'Select Driver', border: OutlineInputBorder()),
+                    items: _drivers.map((d) {
+                      return DropdownMenuItem<String>(
+                        value: d['id'].toString(),
+                        child: Text(d['name'] ?? 'Unknown'),
+                      );
+                    }).toList(),
+                    onChanged: isEditing ? null : (value) => setDialogState(() => selectedDriverId = value),
+                    disabledHint: Text(_drivers.firstWhere((d) => d['id'].toString() == selectedDriverId, orElse: () => {'name': 'Unknown'})['name']),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TextField(
+                  controller: amountController, 
+                  decoration: const InputDecoration(labelText: 'Amount (₹)', border: OutlineInputBorder()), 
+                  keyboardType: TextInputType.number
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: dateController, 
+                  decoration: const InputDecoration(labelText: 'Date (YYYY-MM-DD)', border: OutlineInputBorder(), suffixIcon: Icon(Icons.calendar_today)),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descController, 
+                  decoration: const InputDecoration(labelText: 'Reason (Optional)', border: OutlineInputBorder()),
+                  maxLines: 2,
+                ),
+                if (isEditing) ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 'unpaid', child: Text('UNPAID')),
+                      DropdownMenuItem(value: 'deducted', child: Text('DEDUCTED')),
+                    ],
+                    onChanged: (value) => setDialogState(() => selectedStatus = value!),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (amountController.text.isEmpty || selectedDriverId == null) {
+                  Fluttertoast.showToast(msg: "Amount and Driver are required");
+                  return;
+                }
+                final data = {
+                  'driver_id': selectedDriverId,
+                  'amount': double.tryParse(amountController.text) ?? 0.0,
+                  'date': dateController.text,
+                  'description': descController.text,
+                  if (isEditing) 'status': selectedStatus,
+                };
+                Navigator.pop(context);
+                setState(() => _isLoading = true);
+                
+                final res = isEditing 
+                  ? await ApiService.updateAdvance(advance.id!, data)
+                  : await ApiService.createAdvance(data);
+
+                if (res['success'] == true) {
+                  Fluttertoast.showToast(msg: isEditing ? "Updated" : "Created", backgroundColor: Colors.green);
+                  await _fetchAdvances();
+                  setState(() => _isLoading = false);
+                } else {
+                  setState(() => _isLoading = false);
+                  Fluttertoast.showToast(msg: "Error: ${res['message']}", backgroundColor: Colors.red);
+                }
+              },
+              child: Text(isEditing ? 'Update' : 'Create'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (amountController.text.isEmpty) return;
-              final data = {
-                'driver_id': isEditing ? advance.driverId : widget.driver!['id'].toString(),
-                'amount': double.parse(amountController.text),
-                'date': dateController.text,
-                'description': descController.text,
-              };
-              Navigator.pop(context);
-              setState(() => _isLoading = true);
-              
-              final res = isEditing 
-                ? await ApiService.updateAdvance(advance.id!, data)
-                : await ApiService.createAdvance(data);
-
-              if (res['success'] == true) {
-                Fluttertoast.showToast(msg: isEditing ? "Advance updated" : "Advance created");
-                _fetchAdvances();
-              } else {
-                setState(() => _isLoading = false);
-                Fluttertoast.showToast(msg: "Error: ${res['message']}");
-              }
-            },
-            child: Text(isEditing ? 'Update' : 'Create'),
-          ),
-        ],
       ),
     );
   }
@@ -96,7 +164,7 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Advance'),
-        content: const Text('Are you sure you want to delete this advance entry?'),
+        content: const Text('Are you sure you want to delete this record?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
@@ -108,11 +176,12 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
       setState(() => _isLoading = true);
       final res = await ApiService.deleteAdvance(id);
       if (res['success'] == true) {
-        Fluttertoast.showToast(msg: "Advance deleted");
-        _fetchAdvances();
+        Fluttertoast.showToast(msg: "Deleted", backgroundColor: Colors.green);
+        await _fetchAdvances();
+        setState(() => _isLoading = false);
       } else {
         setState(() => _isLoading = false);
-        Fluttertoast.showToast(msg: "Error: ${res['message']}");
+        Fluttertoast.showToast(msg: "Error: ${res['message']}", backgroundColor: Colors.red);
       }
     }
   }
@@ -121,11 +190,12 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
     setState(() => _isLoading = true);
     final res = await ApiService.updateAdvanceStatus(id, status);
     if (res['success'] == true) {
-      Fluttertoast.showToast(msg: "Status updated to $status");
-      _fetchAdvances();
+      Fluttertoast.showToast(msg: "Marked as $status", backgroundColor: Colors.blue);
+      await _fetchAdvances();
+      setState(() => _isLoading = false);
     } else {
       setState(() => _isLoading = false);
-      Fluttertoast.showToast(msg: "Error: ${res['message']}");
+      Fluttertoast.showToast(msg: "Error: ${res['message']}", backgroundColor: Colors.red);
     }
   }
 
@@ -133,73 +203,87 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.driver != null ? 'Advances: ${widget.driver!['name']}' : 'All Advances'),
+        title: Text(widget.driver != null ? 'Advances: ${widget.driver!['name']}' : 'Salary Advances'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchAdvances),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchInitialData),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _advances.isEmpty
-              ? const Center(child: Text('No advances found'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _advances.length,
-                  itemBuilder: (context, index) {
-                    final advance = _advances[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: ListTile(
-                        title: Text('₹${advance.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              ? const Center(child: Text('No salary advances found'))
+              : RefreshIndicator(
+                  onRefresh: _fetchInitialData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _advances.length,
+                    itemBuilder: (context, index) {
+                      final advance = _advances[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Column(
                           children: [
-                            Text(advance.description),
-                            Text('Date: ${advance.date}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            if (widget.driver == null) Text('Driver: ${advance.driverName ?? 'Unknown'}', style: const TextStyle(color: Colors.blue)),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildStatusChip(advance.status),
-                                if (advance.status == 'unpaid')
-                                  TextButton(
-                                    onPressed: () => _updateStatus(advance.id!, 'deducted'),
-                                    child: const Text('Mark Paid', style: TextStyle(fontSize: 10)),
+                            ListTile(
+                              title: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('₹${advance.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2575FC))),
+                                  _buildStatusChip(advance.status),
+                                ],
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  Text(advance.description.isEmpty ? 'No reason provided' : advance.description),
+                                  Text('Date: ${advance.date}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  if (widget.driver == null) Text('Driver: ${advance.driverName ?? 'Unknown'}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  if (advance.status == 'unpaid')
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
+                                      label: const Text('Mark Paid', style: TextStyle(fontSize: 12, color: Colors.green)),
+                                      onPressed: () => _updateStatus(advance.id!, 'deducted'),
+                                    )
+                                  else
+                                    const Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: Text('Settled', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                    ),
+                                  Row(
+                                    children: [
+                                      IconButton(icon: const Icon(Icons.edit, size: 20, color: Colors.blue), onPressed: () => _showAdvanceDialog(advance: advance)),
+                                      IconButton(icon: const Icon(Icons.delete, size: 20, color: Colors.red), onPressed: () => _deleteAdvance(advance.id!)),
+                                    ],
                                   ),
-                              ],
-                            ),
-                            PopupMenuButton<String>(
-                              onSelected: (val) {
-                                if (val == 'edit') {
-                                  _showAdvanceDialog(advance: advance);
-                                } else if (val == 'delete') {
-                                  _deleteAdvance(advance.id!);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-      floatingActionButton: widget.driver != null
-          ? FloatingActionButton(
-              onPressed: () => _showAdvanceDialog(),
-              backgroundColor: const Color(0xFF2575FC),
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAdvanceDialog(),
+        backgroundColor: const Color(0xFF2575FC),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Add Advance', style: TextStyle(color: Colors.white)),
+      ),
     );
   }
 

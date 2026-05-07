@@ -19,6 +19,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   bool _isLoading = false;
   String _selectedStatus = 'all';
   String _role = 'admin';
+  int _selectedMonth = DateTime.now().month;
+  int _selectedYear = DateTime.now().year;
+
+  final List<String> _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
 
   @override
   void initState() {
@@ -34,7 +41,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final driverId = prefs.getString('driver_id');
 
     if (_role == 'admin') {
-      final response = await ApiService.getExpenseBreakdown();
+      final response = await ApiService.getExpenseBreakdown(
+        month: _selectedMonth,
+        year: _selectedYear,
+      );
       if (response['success'] == true) {
         setState(() {
           _breakdownData = response;
@@ -130,6 +140,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Summary', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              _buildMonthYearPicker(),
+            ],
+          ),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -317,6 +335,46 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             const PopupMenuItem(value: 'delete', child: Text('Delete')),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMonthYearPicker() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButton<int>(
+            value: _selectedMonth,
+            underline: const SizedBox(),
+            items: List.generate(12, (index) => DropdownMenuItem(
+              value: index + 1,
+              child: Text(_months[index]),
+            )),
+            onChanged: (val) {
+              setState(() => _selectedMonth = val!);
+              _fetchExpenses();
+            },
+          ),
+          const SizedBox(width: 8),
+          DropdownButton<int>(
+            value: _selectedYear,
+            underline: const SizedBox(),
+            items: [2025, 2026, 2027].map((y) => DropdownMenuItem(
+              value: y,
+              child: Text(y.toString()),
+            )).toList(),
+            onChanged: (val) {
+              setState(() => _selectedYear = val!);
+              _fetchExpenses();
+            },
+          ),
+        ],
       ),
     );
   }

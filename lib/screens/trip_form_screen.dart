@@ -15,6 +15,10 @@ class TripFormScreen extends StatefulWidget {
 class _TripFormScreenState extends State<TripFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  String _role = 'driver';
+  List<dynamic> _cars = [];
+  List<dynamic> _categories = [];
+  String? _selectedCarId;
 
   late TextEditingController _dateController;
   late TextEditingController _timeController;
@@ -23,7 +27,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
   late TextEditingController _dropLocationController;
   late TextEditingController _mileageController;
   late TextEditingController _tripRateController;
-  String _category = 'ola';
+  String? _category;
 
   @override
   void initState() {
@@ -35,13 +39,49 @@ class _TripFormScreenState extends State<TripFormScreen> {
     _dropLocationController = TextEditingController(text: widget.trip?.dropLocation ?? '');
     _mileageController = TextEditingController(text: widget.trip?.mileage.toString() ?? '');
     _tripRateController = TextEditingController(text: widget.trip?.tripRate.toString() ?? '');
-    if (widget.trip != null) {
-      _category = widget.trip!.category;
-    }
+    _selectedCarId = widget.trip?.carId;
+    _category = widget.trip?.category;
 
-    // Auto-calculate mileage when start or end km changes
     _startKmController.addListener(_calculateMileage);
     _endKmController.addListener(_calculateMileage);
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    await _loadUserRole();
+    await _fetchCategories();
+  }
+
+  Future<void> _loadUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _role = prefs.getString('user_role') ?? 'driver';
+    });
+    if (_role == 'admin') {
+      _fetchCars();
+    }
+  }
+
+  Future<void> _fetchCars() async {
+    final response = await ApiService.getCars();
+    if (response['success'] == true) {
+      setState(() {
+        _cars = response['data'] ?? [];
+      });
+    }
+  }
+
+  Future<void> _fetchCategories() async {
+    final response = await ApiService.getCategories();
+    if (response['success'] == true) {
+      setState(() {
+        _categories = response['data'] ?? [];
+        // If creating new trip and no category selected, default to first one if available
+        if (_category == null && _categories.isNotEmpty) {
+          _category = _categories[0]['name'];
+        }
+      });
+    }
   }
 
   void _calculateMileage() {
@@ -108,8 +148,9 @@ class _TripFormScreenState extends State<TripFormScreen> {
       'drop_location': _dropLocationController.text,
       'mileage': double.parse(_mileageController.text),
       'trip_rate': double.parse(_tripRateController.text),
-      'category': _category,
+      'category': _category ?? 'other',
       if (driverId != null) 'driver_id': driverId,
+      'car_id': _selectedCarId,
     };
 
     final Map<String, dynamic> response;
@@ -134,10 +175,6 @@ class _TripFormScreenState extends State<TripFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.trip == null ? 'Add New Trip' : 'Edit Trip'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -148,6 +185,24 @@ class _TripFormScreenState extends State<TripFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (_role == 'admin') ...[
+                      DropdownButtonFormField<String>(
+                        value: _selectedCarId,
+                        decoration: const InputDecoration(
+                          labelText: 'Select Car (Optional)',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.directions_car),
+                        ),
+                        items: _cars.map((car) {
+                          return DropdownMenuItem<String>(
+                            value: car['id'].toString(),
+                            child: Text("${car['name']} (${car['car_no']})"),
+                          );
+                        }).toList(),
+                        onChanged: (val) => setState(() => _selectedCarId = val),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     Row(
                       children: [
                         Expanded(
@@ -224,9 +279,19 @@ class _TripFormScreenState extends State<TripFormScreen> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: _category,
-                      decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                      items: ['amazon', 'ola', 'uber', 'it', 'other'].map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase()))).toList(),
-                      onChanged: (v) => setState(() => _category = v!),
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.category),
+                      ),
+                      items: _categories.map((c) {
+                        return DropdownMenuItem<String>(
+                          value: c['name'].toString(),
+                          child: Text(c['name'].toString().toUpperCase()),
+                        );
+                      }).toList(),
+                      onChanged: (v) => setState(() => _category = v),
+                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton(

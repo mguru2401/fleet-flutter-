@@ -7,6 +7,7 @@ import 'trips_screen.dart';
 import 'expenses_screen.dart';
 import 'admin_stats_screen.dart';
 import 'advances_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -39,7 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return [
         const TripsScreen(),
         const ExpensesScreen(),
-        const Center(child: Text('Settings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+        const SettingsScreen(),
       ];
     }
     return [
@@ -48,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const TripsScreen(),
       const ExpensesScreen(),
       const AdvancesScreen(),
-      const Center(child: Text('Settings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+      const SettingsScreen(),
     ];
   }
 

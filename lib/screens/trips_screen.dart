@@ -16,7 +16,7 @@ class _TripsScreenState extends State<TripsScreen> {
   List<Trip> _trips = [];
   bool _isLoading = false;
 
-  final List<String> _validCategories = ['all', 'amazon', 'ola', 'uber', 'it', 'other'];
+  List<String> _validCategories = ['all'];
   String _selectedCategory = 'all';
   int? _selectedMonth;
   int? _selectedYear;
@@ -29,7 +29,18 @@ class _TripsScreenState extends State<TripsScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchCategories();
     _fetchTrips();
+  }
+
+  Future<void> _fetchCategories() async {
+    final response = await ApiService.getCategories();
+    if (response['success'] == true) {
+      final List<dynamic> data = response['data'] ?? [];
+      setState(() {
+        _validCategories = ['all', ...data.map((c) => c['name'].toString())];
+      });
+    }
   }
 
   Future<void> _fetchTrips() async {

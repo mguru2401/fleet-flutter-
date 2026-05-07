@@ -46,6 +46,8 @@ class _TripFormScreenState extends State<TripFormScreen> {
 
     _startKmController.addListener(_calculateMileage);
     _endKmController.addListener(_calculateMileage);
+    _tripRateController.addListener(_updateCalculations);
+    _commissionController.addListener(_updateCalculations);
     _loadInitialData();
   }
 
@@ -81,6 +83,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
         // If creating new trip and no category selected, default to first one if available
         if (_category == null && _categories.isNotEmpty) {
           _category = _categories[0]['name'];
+          _prefillCommission();
         }
       });
     }
@@ -93,6 +96,30 @@ class _TripFormScreenState extends State<TripFormScreen> {
       setState(() {
         _mileageController.text = (end - start).toStringAsFixed(2);
       });
+    }
+  }
+
+  void _updateCalculations() {
+    setState(() {}); // Trigger rebuild to update net amount display
+  }
+
+  void _onCategoryChanged(String? val) {
+    setState(() {
+      _category = val;
+      _prefillCommission();
+    });
+  }
+
+  void _prefillCommission() {
+    if ((_category?.toLowerCase() == 'uber' || _category?.toLowerCase() == 'ola')) {
+      final tripRate = double.tryParse(_tripRateController.text) ?? 0;
+      final currentComm = double.tryParse(_commissionController.text) ?? 0;
+      
+      // Prefill if commission is 0 or empty
+      if (tripRate > 0 && (currentComm == 0 || _commissionController.text.isEmpty)) {
+        // Default prefill: 20% commission
+        _commissionController.text = (tripRate * 0.20).toStringAsFixed(2);
+      }
     }
   }
 
@@ -294,7 +321,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
                           child: Text(c['name'].toString().toUpperCase()),
                         );
                       }).toList(),
-                      onChanged: (v) => setState(() => _category = v),
+                      onChanged: _onCategoryChanged,
                       validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                     ),
                     if (_category?.toLowerCase() == 'uber' || _category?.toLowerCase() == 'ola') ...[
@@ -313,6 +340,28 @@ class _TripFormScreenState extends State<TripFormScreen> {
                           }
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Net Earning:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green),
+                            ),
+                            Text(
+                              '₹${((double.tryParse(_tripRateController.text) ?? 0) - (double.tryParse(_commissionController.text) ?? 0)).toStringAsFixed(2)}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                     const SizedBox(height: 32),

@@ -311,7 +311,22 @@ class _TripsScreenState extends State<TripsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text('Category: ${trip.category.toUpperCase()}', style: const TextStyle(color: Colors.blueAccent)),
-                                  Text('Mileage: ${trip.mileage} km | Rate: ₹${trip.tripRate}'),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Mileage: ${trip.mileage} km'),
+                                      if (trip.category.toLowerCase() == 'uber' || trip.category.toLowerCase() == 'ola')
+                                        Text(
+                                          '₹${trip.tripRate} - ₹${trip.commission ?? 0} = ₹${trip.netAmount?.toStringAsFixed(2)}',
+                                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                                        )
+                                      else
+                                        Text(
+                                          'Net: ₹${trip.netAmount?.toStringAsFixed(2)}',
+                                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                                        ),
+                                    ],
+                                  ),
                                 ],
                               ),
                               trailing: PopupMenuButton<String>(

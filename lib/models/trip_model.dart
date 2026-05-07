@@ -11,6 +11,7 @@ class Trip {
   final String? driverId;
   final String? carId;
   final double? commission;
+  final double? netAmount;
 
   Trip({
     this.id,
@@ -25,9 +26,14 @@ class Trip {
     this.driverId,
     this.carId,
     this.commission,
+    this.netAmount,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
+    final tripRate = (json['trip_rate'] ?? 0).toDouble();
+    final commission = json['commission'] != null ? (json['commission'] as num).toDouble() : (json['commission_amount'] != null ? (json['commission_amount'] as num).toDouble() : null);
+    final netAmount = json['net_amount'] != null ? (json['net_amount'] as num).toDouble() : (tripRate - (commission ?? 0));
+
     return Trip(
       id: json['id']?.toString() ?? json['_id']?.toString(),
       pickUpDate: json['pick_up_date'] ?? '',
@@ -36,11 +42,12 @@ class Trip {
       endKm: (json['end_km'] ?? 0).toDouble(),
       dropLocation: json['drop_location'] ?? '',
       mileage: (json['mileage'] ?? 0).toDouble(),
-      tripRate: (json['trip_rate'] ?? 0).toDouble(),
+      tripRate: tripRate,
       category: json['category'] ?? '',
       driverId: json['driver_id']?.toString(),
       carId: json['car_id']?.toString(),
-      commission: json['commission'] != null ? (json['commission'] as num).toDouble() : null,
+      commission: commission,
+      netAmount: netAmount,
     );
   }
 
@@ -56,6 +63,7 @@ class Trip {
       'category': category,
       'car_id': carId,
       if (commission != null) 'commission': commission,
+      if (netAmount != null) 'net_amount': netAmount,
     };
   }
 }

@@ -70,55 +70,109 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isFetchingSalary = true);
+      final response = await ApiService.logout();
+      if (response['success'] == true) {
+        Fluttertoast.showToast(msg: "Logged out successfully");
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        }
+      } else {
+        setState(() => _isFetchingSalary = false);
+        Fluttertoast.showToast(msg: "Logout failed: ${response['message']}");
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (widget.role == 'admin') ...[
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        title: const Text('Settings'),
+        automaticallyImplyLeading: false,
+      ),
+      body: Stack(
+        children: [
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (widget.role == 'admin') ...[
+                _buildSettingItem(
+                  context,
+                  icon: Icons.data_usage,
+                  title: 'Meta Data',
+                  subtitle: 'Manage Cars and Working Days',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MetaDataScreen()),
+                    );
+                  },
+                ),
+                const Divider(color: Colors.white24),
+              ],
+              if (widget.role == 'driver') ...[
+                _buildSettingItem(
+                  context,
+                  icon: Icons.account_balance_wallet,
+                  title: 'Desired Salary',
+                  subtitle: 'Set your monthly income target',
+                  onTap: () => _showDesiredSalaryDialog(context),
+                ),
+                const Divider(color: Colors.white24),
+              ],
               _buildSettingItem(
                 context,
-                icon: Icons.data_usage,
-                title: 'Meta Data',
-                subtitle: 'Manage Cars and Working Days',
+                icon: Icons.person,
+                title: 'Profile Settings',
+                subtitle: 'Manage your personal information',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const MetaDataScreen()),
-                  );
+                  // Not implemented yet
                 },
               ),
-              const Divider(),
-            ],
-            if (widget.role == 'driver') ...[
+              const Divider(color: Colors.white24),
               _buildSettingItem(
                 context,
-                icon: Icons.account_balance_wallet,
-                title: 'Desired Salary',
-                subtitle: 'Set your monthly income target',
-                onTap: () => _showDesiredSalaryDialog(context),
+                icon: Icons.logout,
+                title: 'Logout',
+                subtitle: 'Sign out of your account',
+                onTap: () => _handleLogout(context),
+                color: Colors.redAccent,
               ),
-              const Divider(),
             ],
-            _buildSettingItem(
-              context,
-              icon: Icons.person,
-              title: 'Profile Settings',
-              subtitle: 'Manage your personal information',
-              onTap: () {
-                // Not implemented yet
-              },
-            ),
-          ],
-        ),
-        if (_isFetchingSalary)
-          Container(
-            color: Colors.black12,
-            child: const Center(child: CircularProgressIndicator()),
           ),
-      ],
+          if (_isFetchingSalary)
+            Container(
+              color: Colors.black12,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+        ],
+      ),
     );
   }
 
@@ -128,23 +182,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? color,
   }) {
+    final themeColor = color ?? const Color(0xFF2575FC);
     return ListTile(
-// ... (rest of the method remains same)
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF2575FC).withOpacity(0.1),
+          color: themeColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: const Color(0xFF2575FC)),
+        child: Icon(icon, color: themeColor),
       ),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(fontWeight: FontWeight.bold, color: color ?? Colors.white),
       ),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
+      subtitle: Text(subtitle, style: const TextStyle(color: Colors.white70)),
+      trailing: const Icon(Icons.chevron_right, color: Colors.white54),
       onTap: onTap,
     );
   }

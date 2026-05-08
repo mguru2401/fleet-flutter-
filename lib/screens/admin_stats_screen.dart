@@ -35,27 +35,30 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
-    if (_stats == null) return const Center(child: Text('Failed to load stats'));
+    if (_stats == null) return const Center(child: Text('Failed to load stats', style: TextStyle(color: Colors.white70)));
 
     final overall = _stats!['overall_summary'];
     final byCarAndCat = _stats!['by_car_and_category'] as Map<String, dynamic>;
 
-    return RefreshIndicator(
-      onRefresh: _fetchStats,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildOverallSummary(overall),
-            const SizedBox(height: 24),
-            const Text(
-              'Revenue by Car & Category',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ...byCarAndCat.entries.map((entry) => _buildCarCard(entry.key, entry.value)),
-          ],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        onRefresh: _fetchStats,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildOverallSummary(overall),
+              const SizedBox(height: 24),
+              const Text(
+                'Revenue by Car & Category',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              ...byCarAndCat.entries.map((entry) => _buildCarCard(entry.key, entry.value)),
+            ],
+          ),
         ),
       ),
     );

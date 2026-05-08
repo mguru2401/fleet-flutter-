@@ -99,7 +99,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
         title: const Text('Expenses'),
         automaticallyImplyLeading: false,
         actions: [
@@ -143,7 +147,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Summary', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('Summary', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
               _buildMonthYearPicker(),
             ],
           ),
@@ -153,6 +157,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [Color(0xFF00B4DB), Color(0xFF0083B0)]),
               borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5)),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -164,7 +171,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text('Car-wise Breakdown', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text('Car-wise Breakdown', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 16),
           ...carData.map((car) => _buildCarCard(car)),
         ],
@@ -189,8 +196,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Widget _buildCarCard(Map<String, dynamic> car) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
+      color: Colors.white.withOpacity(0.05),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      elevation: 4,
+      elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(15),
         onTap: () {
@@ -211,17 +219,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Car: ${car['car_no']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const Icon(Icons.chevron_right, color: Colors.grey),
+                  Text('Car: ${car['car_no']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const Icon(Icons.chevron_right, color: Colors.white54),
                 ],
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, color: Colors.white10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildMiniStat('Expense', car['total_expense']),
-                  _buildMiniStat('Revenue', car['total_revenue']),
-                  _buildMiniStat('Net Profit', car['net_profit'], color: Colors.green),
+                  _buildMiniStat('Expense', car['total_expense'], color: Colors.redAccent.shade100),
+                  _buildMiniStat('Revenue', car['total_revenue'], color: Colors.blueAccent.shade100),
+                  _buildMiniStat('Net Profit', car['net_profit'], color: Colors.greenAccent.shade200),
                 ],
               ),
             ],
@@ -234,7 +242,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Widget _buildMiniStat(String label, num value, {Color? color}) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
         const SizedBox(height: 4),
         Text(
           '₹${value.toStringAsFixed(0)}',
@@ -252,6 +260,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SegmentedButton<String>(
+              style: SegmentedButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.05),
+                selectedBackgroundColor: const Color(0xFF2575FC),
+                selectedForegroundColor: Colors.white,
+                foregroundColor: Colors.white70,
+                side: const BorderSide(color: Colors.white24),
+              ),
               segments: const [
                 ButtonSegment(value: 'all', label: Text('All')),
                 ButtonSegment(value: 'pending', label: Text('Pending')),
@@ -284,32 +299,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   Widget _buildExpenseTile(Expense expense) {
     return Card(
-      elevation: 4,
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
+      color: Colors.white.withOpacity(0.05),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(expense.reason, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            Text('₹${expense.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            Text(expense.reason, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
+            Text('₹${expense.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent)),
           ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            Text(expense.description),
+            Text(expense.description, style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                    const Icon(Icons.calendar_today, size: 16, color: Colors.white54),
                     const SizedBox(width: 4),
-                    Text(expense.date),
+                    Text(expense.date, style: const TextStyle(color: Colors.white54)),
                   ],
                 ),
                 _getStatusChip(expense.status),
@@ -343,14 +359,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButton<int>(
             value: _selectedMonth,
+            dropdownColor: const Color(0xFF0e3a35),
+            style: const TextStyle(color: Colors.white),
             underline: const SizedBox(),
             items: List.generate(12, (index) => DropdownMenuItem(
               value: index + 1,
@@ -364,6 +383,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           const SizedBox(width: 8),
           DropdownButton<int>(
             value: _selectedYear,
+            dropdownColor: const Color(0xFF0e3a35),
+            style: const TextStyle(color: Colors.white),
             underline: const SizedBox(),
             items: [2025, 2026, 2027].map((y) => DropdownMenuItem(
               value: y,

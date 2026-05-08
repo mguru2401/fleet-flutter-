@@ -11,6 +11,7 @@ class ApiService {
   static const String categoriesBaseUrl = '$baseUrl/categories';
   static const String advancesBaseUrl = '$baseUrl/advances';
   static const String salaryBaseUrl = '$baseUrl/salary';
+  static const String dashboardBaseUrl = '$baseUrl/dashboard';
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -135,13 +136,23 @@ class ApiService {
   }
 
   // Trips CRUD
-  static Future<Map<String, dynamic>> getTrips({String? category, int? month, int? year}) async {
+  static Future<Map<String, dynamic>> getTrips({
+    String? category, 
+    int? month, 
+    int? year,
+    String? searchTerm,
+    String? startDate,
+    String? endDate,
+  }) async {
     try {
       final headers = await _getHeaders();
       Map<String, String> queryParams = {};
       if (category != null && category != 'all') queryParams['category'] = category;
       if (month != null) queryParams['month'] = month.toString();
       if (year != null) queryParams['year'] = year.toString();
+      if (searchTerm != null && searchTerm.isNotEmpty) queryParams['search'] = searchTerm;
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
 
       final uri = Uri.parse(tripsBaseUrl).replace(queryParameters: queryParams);
       
@@ -165,16 +176,26 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getTripsByDriver(String driverId, {String? category, int? month, int? year}) async {
+  static Future<Map<String, dynamic>> getTripsByDriver(
+    String driverId, {
+    String? category, 
+    int? month, 
+    int? year,
+    String? searchTerm,
+    String? startDate,
+    String? endDate,
+  }) async {
     try {
       final headers = await _getHeaders();
-      Map<String, String> queryParams = {};
+      Map<String, String> queryParams = {'driver_id': driverId};
       if (category != null && category != 'all') queryParams['category'] = category;
       if (month != null) queryParams['month'] = month.toString();
       if (year != null) queryParams['year'] = year.toString();
+      if (searchTerm != null && searchTerm.isNotEmpty) queryParams['search'] = searchTerm;
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
 
       final uri = Uri.parse('$tripsBaseUrl/driver/$driverId').replace(queryParameters: queryParams);
-
       final response = await http.get(uri, headers: headers);
       return jsonDecode(response.body);
     } catch (e) {
@@ -518,6 +539,37 @@ class ApiService {
       return jsonDecode(response.body);
     } catch (e) {
       return {'success': false, 'message': 'Error fetching goal status: $e'};
+    }
+  }
+
+  // User Dashboard
+  static Future<Map<String, dynamic>> getUserDashboard() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$dashboardBaseUrl/user'),
+        headers: headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error fetching dashboard: $e'};
+    }
+  }
+
+  // Admin Dashboard
+  static Future<Map<String, dynamic>> getAdminDashboard({int? month, int? year, String? search}) async {
+    try {
+      final headers = await _getHeaders();
+      Map<String, String> queryParams = {};
+      if (month != null) queryParams['month'] = month.toString();
+      if (year != null) queryParams['year'] = year.toString();
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+
+      final uri = Uri.parse('$dashboardBaseUrl/admin').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error fetching admin dashboard: $e'};
     }
   }
 }

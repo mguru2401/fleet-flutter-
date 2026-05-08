@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../models/trip_model.dart';
@@ -26,6 +27,10 @@ class _TripsScreenState extends State<TripsScreen> {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  final TextEditingController _searchController = TextEditingController();
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   @override
   void initState() {
@@ -64,25 +69,35 @@ class _TripsScreenState extends State<TripsScreen> {
 
   Future<void> _fetchTrips() async {
     setState(() => _isLoading = true);
-    _fetchGoalStatus(); // Fetch goal status whenever trips are fetched
+    _fetchGoalStatus();
     
     final prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('user_role') ?? 'admin';
     final driverId = prefs.getString('driver_id');
 
     final Map<String, dynamic> response;
+    final startStr = _startDate != null ? DateFormat('yyyy-MM-dd').format(_startDate!) : null;
+    final endStr = _endDate != null ? DateFormat('yyyy-MM-dd').format(_endDate!) : null;
+    final searchStr = _searchController.text.trim();
+
     if (role == 'driver' && driverId != null) {
       response = await ApiService.getTripsByDriver(
         driverId,
         category: _selectedCategory,
         month: _selectedMonth,
         year: _selectedYear,
+        searchTerm: searchStr,
+        startDate: startStr,
+        endDate: endStr,
       );
     } else {
       response = await ApiService.getTrips(
         category: _selectedCategory,
         month: _selectedMonth,
         year: _selectedYear,
+        searchTerm: searchStr,
+        startDate: startStr,
+        endDate: endStr,
       );
     }
     
@@ -95,6 +110,38 @@ class _TripsScreenState extends State<TripsScreen> {
       });
     } else {
       Fluttertoast.showToast(msg: "Error: ${response['message']}");
+    }
+  }
+
+  Future<void> _selectDate(bool isStart) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF2575FC),
+              onPrimary: Colors.white,
+              surface: Color(0xFF0e3a35),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
+      });
+      _fetchTrips();
     }
   }
 
@@ -124,59 +171,30 @@ class _TripsScreenState extends State<TripsScreen> {
     }
   }
 
-  Widget _buildGoalProgressBar() {
-    if (_goalStatus == null) return const SizedBox.shrink();
-
-    final achievement = (_goalStatus!['achievement_percentage'] as num?)?.toDouble() ?? 0.0;
-    final soFar = _goalStatus!['so_far_salary'] ?? 0;
-    final remaining = _goalStatus!['remaining_to_goal'] ?? 0;
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Goal Progress Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('${achievement.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2575FC))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: achievement / 100,
-              minHeight: 12,
-              backgroundColor: Colors.grey[200],
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2575FC)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('So Far: ₹$soFar', style: const TextStyle(fontSize: 13, color: Colors.green)),
-              Text('Remaining: ₹$remaining', style: const TextStyle(fontSize: 13, color: Colors.orange)),
-            ],
-          ),
-        ],
-      ),
-    );
+  Map<String, List<Trip>> _groupTripsByDate() {
+    Map<String, List<Trip>> groups = {};
+    for (var trip in _trips) {
+      if (!groups.containsKey(trip.pickUpDate)) {
+        groups[trip.pickUpDate] = [];
+      }
+      groups[trip.pickUpDate]!.add(trip);
+    }
+    // Sort dates descending
+    var sortedKeys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
+    return Map.fromIterable(sortedKeys, key: (k) => k, value: (k) => groups[k]!);
   }
 
   @override
   Widget build(BuildContext context) {
+    final groupedTrips = _groupTripsByDate();
+
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('My Trips'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        title: const Text('Trips History'),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
@@ -187,17 +205,16 @@ class _TripsScreenState extends State<TripsScreen> {
       ),
       body: Column(
         children: [
-          _buildGoalProgressBar(),
           // Filter Bar
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              color: Colors.white.withOpacity(0.05),
+              border: const Border(bottom: BorderSide(color: Colors.white12)),
             ),
             child: Column(
               children: [
-                // Category Filter (Horizontal List)
+                // Category Filter
                 SizedBox(
                   height: 40,
                   child: ListView.builder(
@@ -218,141 +235,95 @@ class _TripsScreenState extends State<TripsScreen> {
                             }
                           },
                           selectedColor: const Color(0xFF2575FC),
-                          labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+                          backgroundColor: Colors.white.withOpacity(0.1),
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       );
                     },
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Month and Year Filters
+                TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Search drop location...',
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.05),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (value) => _fetchTrips(),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(
-                      child: DropdownButtonFormField<int?>(
-                        value: _selectedMonth,
-                        decoration: const InputDecoration(
-                          hintText: 'Month',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                          border: OutlineInputBorder(),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int?>(value: null, child: Text('All Months')),
-                          ...List.generate(12, (index) => DropdownMenuItem<int?>(value: index + 1, child: Text(_months[index]))),
-                        ],
-                        onChanged: (val) {
-                          setState(() => _selectedMonth = val);
-                          _fetchTrips();
-                        },
-                      ),
+                    _buildDateButton(
+                      label: _startDate == null ? 'Start' : DateFormat('MMM dd').format(_startDate!),
+                      icon: Icons.calendar_today,
+                      onTap: () => _selectDate(true),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<int?>(
-                        value: _selectedYear,
-                        decoration: const InputDecoration(
-                          hintText: 'Year',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                          border: OutlineInputBorder(),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int?>(value: null, child: Text('All Years')),
-                          ...List.generate(5, (index) {
-                            final year = DateTime.now().year - index;
-                            return DropdownMenuItem<int?>(value: year, child: Text(year.toString()));
-                          }),
-                        ],
-                        onChanged: (val) {
-                          setState(() => _selectedYear = val);
-                          _fetchTrips();
-                        },
-                      ),
+                    const SizedBox(width: 8),
+                    _buildDateButton(
+                      label: _endDate == null ? 'End' : DateFormat('MMM dd').format(_endDate!),
+                      icon: Icons.calendar_today,
+                      onTap: () => _selectDate(false),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          // Trip List
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _trips.isEmpty
-                    ? const Center(child: Text('No trips found matching filters'))
+                : groupedTrips.isEmpty
+                    ? const Center(child: Text('No trips found', style: TextStyle(color: Colors.white70)))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: _trips.length,
+                        itemCount: groupedTrips.length,
                         itemBuilder: (context, index) {
-                          final trip = _trips[index];
+                          final date = groupedTrips.keys.elementAt(index);
+                          final trips = groupedTrips[date]!;
+                          final totalEarnings = trips.fold<double>(0, (sum, item) => sum + (item.netAmount ?? 0));
+
                           return Card(
-                            elevation: 4,
                             margin: const EdgeInsets.only(bottom: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
+                            color: Colors.white.withOpacity(0.05),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                            child: ExpansionTile(
+                              iconColor: Colors.white,
+                              collapsedIconColor: Colors.white,
+                              shape: const RoundedRectangleBorder(side: BorderSide.none),
+                              collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2575FC).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.calendar_today, color: Color(0xFF2575FC), size: 20),
+                              ),
                               title: Text(
-                                trip.dropLocation,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                _formatDate(date),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(trip.pickUpDate),
-                                      const SizedBox(width: 16),
-                                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(trip.pickUpTime),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text('Category: ${trip.category.toUpperCase()}', style: const TextStyle(color: Colors.blueAccent)),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('Mileage: ${trip.mileage} km'),
-                                      if (trip.category.toLowerCase() == 'uber' || trip.category.toLowerCase() == 'ola')
-                                        Text.rich(
-                                          TextSpan(
-                                            children: [
-                                              TextSpan(text: '₹${trip.tripRate}'),
-                                              TextSpan(text: ' - ₹${trip.commission ?? 0}', style: const TextStyle(color: Colors.red)),
-                                              TextSpan(text: ' = ₹${trip.netAmount?.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green)),
-                                            ],
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
-                                          ),
-                                        )
-                                      else
-                                        Text(
-                                          '₹${trip.netAmount?.toStringAsFixed(2)}',
-                                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                                        ),
-                                    ],
-                                  ),
-                                ],
+                              subtitle: Text(
+                                '${trips.length} trips • Total: ₹${totalEarnings.toStringAsFixed(0)}',
+                                style: const TextStyle(fontSize: 12, color: Colors.white70),
                               ),
-                              trailing: PopupMenuButton<String>(
-                                onSelected: (value) {
-                                  if (value == 'edit') {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => TripFormScreen(trip: trip)),
-                                    ).then((value) {
-                                      if (value == true) _fetchTrips();
-                                    });
-                                  } else if (value == 'delete') {
-                                    _deleteTrip(trip.id!);
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                                ],
-                              ),
+                              children: trips.map((trip) => _buildTripDetailItem(trip)).toList(),
                             ),
                           );
                         },
@@ -374,5 +345,142 @@ class _TripsScreenState extends State<TripsScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      if (date.year == now.year && date.month == now.month && date.day == now.day) {
+        return "Today, ${DateFormat('MMM d').format(date)}";
+      }
+      return DateFormat('EEEE, MMM d, yyyy').format(date);
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  Widget _buildDateButton({required String label, required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          border: Border.all(color: Colors.white24),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: Colors.white70),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTripDetailItem(Trip trip) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.white10)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      trip.pickUpTime,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getCategoryColor(trip.category).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        trip.category.toUpperCase(),
+                        style: TextStyle(
+                          color: _getCategoryColor(trip.category),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  trip.dropLocation,
+                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${trip.mileage} km • ₹${trip.tripRate} rate',
+                  style: const TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₹${trip.netAmount?.toStringAsFixed(0)}',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent, fontSize: 15),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.white60),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => TripFormScreen(trip: trip)),
+                      ).then((value) {
+                        if (value == true) _fetchTrips();
+                      });
+                    },
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                    onPressed: () => _deleteTrip(trip.id!),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'amazon': return Colors.orange;
+      case 'ola': return Colors.lightGreen;
+      case 'uber': return Colors.black;
+      case 'porter': return Colors.blue;
+      default: return Colors.grey;
+    }
   }
 }

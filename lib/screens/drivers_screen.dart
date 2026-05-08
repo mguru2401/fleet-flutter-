@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../services/api_service.dart';
 import 'advances_screen.dart';
+import '../widgets/app_background.dart';
 
 class DriversScreen extends StatefulWidget {
   const DriversScreen({super.key});
@@ -155,64 +156,73 @@ class _DriversScreenState extends State<DriversScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Drivers Management', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchInitialData),
-        ],
-      ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _drivers.isEmpty
-          ? const Center(child: Text("No drivers found"))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _drivers.length,
-              itemBuilder: (context, index) {
-                final driver = _drivers[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blue.shade100,
-                      child: Text(driver['name']?[0] ?? 'D'),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Drivers Management', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchInitialData),
+          ],
+        ),
+        body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : _drivers.isEmpty
+            ? const Center(child: Text("No drivers found", style: TextStyle(color: Colors.white70)))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _drivers.length,
+                itemBuilder: (context, index) {
+                  final driver = _drivers[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    color: Colors.white.withOpacity(0.05),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Colors.white10),
                     ),
-                    title: Text(driver['name'] ?? 'No Name', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      "Emp: ${driver['employee_no'] ?? 'N/A'} | Car: ${driver['car_no'] ?? 'N/A'}\n"
-                      "Revenue: ₹${driver['revenue_per_day'] ?? '0'}/day\n"
-                      "Loc: ${driver['location'] ?? 'N/A'}"
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                        child: Text(driver['name']?[0] ?? 'D', style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                      ),
+                      title: Text(driver['name'] ?? 'No Name', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      subtitle: Text(
+                        "Emp: ${driver['employee_no'] ?? 'N/A'} | Car: ${driver['car_no'] ?? 'N/A'}\n"
+                        "Revenue: ₹${driver['revenue_per_day'] ?? '0'}/day\n"
+                        "Loc: ${driver['location'] ?? 'N/A'}",
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      isThreeLine: true,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.payments_outlined, color: Colors.greenAccent),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => AdvancesScreen(driver: driver)),
+                              );
+                            },
+                          ),
+                          IconButton(icon: const Icon(Icons.edit, color: Colors.blueAccent), onPressed: () => _showDriverDialog(driver: driver)),
+                          IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () => _deleteDriver(driver['id'].toString())),
+                        ],
+                      ),
                     ),
-                    isThreeLine: true,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.payments_outlined, color: Colors.green),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => AdvancesScreen(driver: driver)),
-                            );
-                          },
-                        ),
-                        IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showDriverDialog(driver: driver)),
-                        IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteDriver(driver['id'].toString())),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showDriverDialog(),
-        backgroundColor: const Color(0xFF2575FC),
-        child: const Icon(Icons.add, color: Colors.white),
+                  );
+                },
+              ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showDriverDialog(),
+          backgroundColor: const Color(0xFF2575FC),
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }

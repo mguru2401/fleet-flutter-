@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../services/api_service.dart';
 import '../models/advance_model.dart';
+import '../widgets/app_background.dart';
 
 class AdvancesScreen extends StatefulWidget {
   final Map<String, dynamic>? driver; // If null, show all advances
@@ -109,7 +110,13 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: selectedStatus,
-                    decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      labelText: 'Status', 
+                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                    dropdownColor: const Color(0xFF0e3a35),
+                    style: const TextStyle(color: Colors.white),
                     items: const [
                       DropdownMenuItem(value: 'unpaid', child: Text('UNPAID')),
                       DropdownMenuItem(value: 'deducted', child: Text('DEDUCTED')),
@@ -201,20 +208,25 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.driver != null ? 'Advances: ${widget.driver!['name']}' : 'Salary Advances'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchInitialData),
-        ],
-      ),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            widget.driver != null ? 'Advances: ${widget.driver!['name']}' : 'Salary Advances',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          actions: [
+            IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchInitialData),
+          ],
+        ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _advances.isEmpty
-              ? const Center(child: Text('No salary advances found'))
+              ? const Center(child: Text('No salary advances found', style: TextStyle(color: Colors.white70)))
               : RefreshIndicator(
                   onRefresh: _fetchInitialData,
                   child: ListView.builder(
@@ -224,15 +236,19 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
                       final advance = _advances[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        color: Colors.white.withOpacity(0.05),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: Colors.white10),
+                        ),
                         child: Column(
                           children: [
                             ListTile(
                               title: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('₹${advance.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2575FC))),
+                                  Text('₹${advance.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blueAccent)),
                                   _buildStatusChip(advance.status),
                                 ],
                               ),
@@ -240,9 +256,9 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 8),
-                                  Text(advance.description.isEmpty ? 'No reason provided' : advance.description),
-                                  Text('Date: ${advance.date}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                  if (widget.driver == null) Text('Driver: ${advance.driverName ?? 'Unknown'}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)),
+                                  Text(advance.description.isEmpty ? 'No reason provided' : advance.description, style: const TextStyle(color: Colors.white)),
+                                  Text('Date: ${advance.date}', style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                                  if (widget.driver == null) Text('Driver: ${advance.driverName ?? 'Unknown'}', style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w500)),
                                 ],
                               ),
                             ),
@@ -252,21 +268,21 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  if (advance.status == 'unpaid')
-                                    TextButton.icon(
-                                      icon: const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
-                                      label: const Text('Mark Paid', style: TextStyle(fontSize: 12, color: Colors.green)),
-                                      onPressed: () => _updateStatus(advance.id!, 'deducted'),
-                                    )
-                                  else
-                                    const Padding(
-                                      padding: EdgeInsets.all(12.0),
-                                      child: Text('Settled', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                  Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Text(
+                                      advance.status == 'unpaid' ? 'Pending Deduction' : 'Settled', 
+                                      style: TextStyle(
+                                        color: advance.status == 'unpaid' ? Colors.orangeAccent : Colors.white54, 
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
+                                  ),
                                   Row(
                                     children: [
-                                      IconButton(icon: const Icon(Icons.edit, size: 20, color: Colors.blue), onPressed: () => _showAdvanceDialog(advance: advance)),
-                                      IconButton(icon: const Icon(Icons.delete, size: 20, color: Colors.red), onPressed: () => _deleteAdvance(advance.id!)),
+                                      IconButton(icon: const Icon(Icons.edit, size: 20, color: Colors.blueAccent), onPressed: () => _showAdvanceDialog(advance: advance)),
+                                      IconButton(icon: const Icon(Icons.delete, size: 20, color: Colors.redAccent), onPressed: () => _deleteAdvance(advance.id!)),
                                     ],
                                   ),
                                 ],
@@ -278,11 +294,12 @@ class _AdvancesScreenState extends State<AdvancesScreen> {
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAdvanceDialog(),
-        backgroundColor: const Color(0xFF2575FC),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Advance', style: TextStyle(color: Colors.white)),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _showAdvanceDialog(),
+          backgroundColor: const Color(0xFF2575FC),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text('Add Advance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ),
       ),
     );
   }

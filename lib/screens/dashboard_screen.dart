@@ -6,6 +6,8 @@ import 'drivers_screen.dart';
 import 'trips_screen.dart';
 import 'expenses_screen.dart';
 import 'admin_earnings_screen.dart';
+import 'admin_salary_screen.dart';
+import 'user_salary_screen.dart';
 import 'earnings_screen.dart';
 import 'advances_screen.dart';
 import 'settings_screen.dart';
@@ -56,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const EarningsScreen(),
         const TripsScreen(),
         const ExpensesScreen(),
+        const UserSalaryScreen(),
         SettingsScreen(role: _role),
       ];
     }
@@ -65,6 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const TripsScreen(),
       const ExpensesScreen(),
       const AdvancesScreen(),
+      const AdminSalaryScreen(),
       SettingsScreen(role: _role),
     ];
   }
@@ -131,6 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Earnings'),
                   BottomNavigationBarItem(icon: Icon(Icons.directions_car), label: 'Trips'),
                   BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Expenses'),
+                  BottomNavigationBarItem(icon: Icon(Icons.currency_rupee), label: 'Salary'),
                   BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
                 ]
               : const <BottomNavigationBarItem>[
@@ -139,6 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Trips'),
                 BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Expenses'),
                 BottomNavigationBarItem(icon: Icon(Icons.payments), label: 'Advances'),
+                BottomNavigationBarItem(icon: Icon(Icons.currency_rupee), label: 'Salaries'),
                 BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
               ],
             currentIndex: _selectedIndex,

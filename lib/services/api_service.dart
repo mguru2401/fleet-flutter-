@@ -572,4 +572,49 @@ class ApiService {
       return {'success': false, 'message': 'Error fetching admin dashboard: $e'};
     }
   }
+
+  static Future<Map<String, dynamic>> getAdminSalaryDashboard({int? month, int? year}) async {
+    try {
+      final headers = await _getHeaders();
+      Map<String, String> queryParams = {};
+      if (month != null) queryParams['month'] = month.toString();
+      if (year != null) queryParams['year'] = year.toString();
+
+      final uri = Uri.parse('$dashboardBaseUrl/admin/salary').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error fetching admin salary dashboard: $e'};
+    }
+  }
+
+  // User Salary Dashboard
+  static Future<Map<String, dynamic>> getUserSalaryDashboard({int? month, int? year}) async {
+    try {
+      final headers = await _getHeaders();
+      Map<String, String> queryParams = {};
+      if (month != null) queryParams['month'] = month.toString();
+      if (year != null) queryParams['year'] = year.toString();
+
+      final uri = Uri.parse('$dashboardBaseUrl/user/salary').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error fetching user salary dashboard: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> settleSalary(Map<String, dynamic> payload) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/salary/settle'),
+        headers: headers,
+        body: jsonEncode(payload),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error settling salary: $e'};
+    }
+  }
 }

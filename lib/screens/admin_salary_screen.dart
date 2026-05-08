@@ -112,6 +112,61 @@ class _AdminSalaryScreenState extends State<AdminSalaryScreen> {
     }
   }
 
+  void _showAdvancesDetails(List<dynamic> advances) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0e3a35),
+        title: const Text('Advance Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: advances.isEmpty
+            ? const Text('No advance details available', style: TextStyle(color: Colors.white70))
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: advances.length,
+                itemBuilder: (context, index) {
+                  final adv = advances[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('₹${adv['amount']}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(adv['date'] ?? '', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                          ],
+                        ),
+                        if (adv['description'] != null && adv['description'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(adv['description'], style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                        ],
+                        const SizedBox(height: 4),
+                        Text('Status: ${adv['status']?.toUpperCase()}', style: TextStyle(color: adv['status'] == 'paid' ? Colors.blueAccent : Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -202,6 +257,7 @@ class _AdminSalaryScreenState extends State<AdminSalaryScreen> {
   Widget _buildSalaryCard(Map<String, dynamic> driver) {
     final payable = (driver['final_company_payable'] as num).toDouble();
     final inHand = (driver['amount_remaining_in_hand'] as num).toDouble();
+    final totalAdvances = (driver['total_advances'] as num).toDouble();
     
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -251,7 +307,13 @@ class _AdminSalaryScreenState extends State<AdminSalaryScreen> {
             child: Column(
               children: [
                 _buildFinanceRow('Total Salary Earned', driver['total_salary_earned'], color: Colors.greenAccent),
-                _buildFinanceRow('Total Advances', driver['total_advances'], color: Colors.redAccent, isDeduction: true),
+                _buildFinanceRow(
+                  'Total Advances', 
+                  driver['total_advances'], 
+                  color: Colors.redAccent, 
+                  isDeduction: true,
+                  onInfoTap: totalAdvances > 0 ? () => _showAdvancesDetails(driver['advances_list'] ?? []) : null,
+                ),
                 _buildFinanceRow('Cash Collected', driver['cash_revenue_collected'], color: Colors.redAccent, isDeduction: true),
                 const Divider(color: Colors.white10),
                 _buildFinanceRow('In-Hand with Driver', inHand, color: Colors.orangeAccent),
@@ -305,13 +367,24 @@ class _AdminSalaryScreenState extends State<AdminSalaryScreen> {
     );
   }
 
-  Widget _buildFinanceRow(String label, dynamic value, {Color? color, bool isBold = false, bool isDeduction = false}) {
+  Widget _buildFinanceRow(String label, dynamic value, {Color? color, bool isBold = false, bool isDeduction = false, VoidCallback? onInfoTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 13, color: isBold ? Colors.white : Colors.white70)),
+          Row(
+            children: [
+              Text(label, style: TextStyle(fontSize: 13, color: isBold ? Colors.white : Colors.white70)),
+              if (onInfoTap != null) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: onInfoTap,
+                  child: const Icon(Icons.info_outline, size: 14, color: Colors.blueAccent),
+                ),
+              ],
+            ],
+          ),
           Text(
             '${isDeduction ? "-" : ""}₹${(value as num).toStringAsFixed(0)}',
             style: TextStyle(

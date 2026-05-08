@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../services/api_service.dart';
+import 'drivers_screen.dart';
+import '../widgets/app_background.dart';
 
 class MetaDataScreen extends StatefulWidget {
   const MetaDataScreen({super.key});
@@ -12,26 +14,34 @@ class MetaDataScreen extends StatefulWidget {
 class _MetaDataScreenState extends State<MetaDataScreen> {
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Meta Data'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.directions_car), text: 'Cars'),
-              Tab(icon: Icon(Icons.category), text: 'Categories'),
-            ],
-            labelColor: Color(0xFF2575FC),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF2575FC),
+    return AppBackground(
+      child: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            foregroundColor: Colors.white,
+            title: const Text('Meta Data'),
+            bottom: const TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.directions_car), text: 'Cars'),
+                Tab(icon: Icon(Icons.category), text: 'Categories'),
+                Tab(icon: Icon(Icons.person), text: 'Drivers'),
+              ],
+              labelColor: Color(0xFF2575FC),
+              unselectedLabelColor: Colors.white60,
+              indicatorColor: Color(0xFF2575FC),
+            ),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            CarsTab(),
-            CategoriesTab(),
-          ],
+          body: const TabBarView(
+            children: [
+              CarsTab(),
+              CategoriesTab(),
+              DriversScreen(hideAppBar: true),
+            ],
+          ),
         ),
       ),
     );
@@ -180,35 +190,40 @@ class _CarsTabState extends State<CarsTab> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: _cars.isEmpty
-          ? const Center(child: Text('No cars found'))
+          ? const Center(child: Text('No cars found', style: TextStyle(color: Colors.white70)))
           : RefreshIndicator(
               onRefresh: _fetchCars,
               child: ListView.builder(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(16),
                 itemCount: _cars.length,
                 itemBuilder: (context, index) {
                   final car = _cars[index];
                   return Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    color: Colors.white.withOpacity(0.05),
+                    elevation: 0,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Colors.white10),
+                    ),
                     child: ListTile(
                       leading: const CircleAvatar(
                         backgroundColor: Color(0xFF2575FC),
                         child: Icon(Icons.directions_car, color: Colors.white),
                       ),
-                      title: Text(car['name'] ?? 'Unknown Car', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text("${car['model'] ?? ''} | ${car['car_no'] ?? ''}"),
+                      title: Text(car['name'] ?? 'Unknown Car', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      subtitle: Text("${car['model'] ?? ''} | ${car['car_no'] ?? ''}", style: const TextStyle(color: Colors.white70)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            icon: const Icon(Icons.edit, color: Colors.blueAccent),
                             onPressed: () => _showCarDialog(car: car),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon: const Icon(Icons.delete, color: Colors.redAccent),
                             onPressed: () => _confirmDelete(car['id'].toString(), car['name'] ?? 'this car'),
                           ),
                         ],
@@ -341,34 +356,39 @@ class _CategoriesTabState extends State<CategoriesTab> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: _categories.isEmpty
-          ? const Center(child: Text('No categories found'))
+          ? const Center(child: Text('No categories found', style: TextStyle(color: Colors.white70)))
           : RefreshIndicator(
               onRefresh: _fetchCategories,
               child: ListView.builder(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(16),
                 itemCount: _categories.length,
                 itemBuilder: (context, index) {
                   final category = _categories[index];
                   return Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    color: Colors.white.withOpacity(0.05),
+                    elevation: 0,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Colors.white10),
+                    ),
                     child: ListTile(
                       leading: const CircleAvatar(
                         backgroundColor: Color(0xFF2575FC),
                         child: Icon(Icons.category, color: Colors.white),
                       ),
-                      title: Text(category['name'] ?? 'Unknown Category', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      title: Text(category['name'] ?? 'Unknown Category', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            icon: const Icon(Icons.edit, color: Colors.blueAccent),
                             onPressed: () => _showCategoryDialog(category: category),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon: const Icon(Icons.delete, color: Colors.redAccent),
                             onPressed: () => _confirmDelete(category['id'].toString(), category['name'] ?? 'this category'),
                           ),
                         ],

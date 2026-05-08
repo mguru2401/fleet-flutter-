@@ -5,7 +5,8 @@ import 'drivers_screen.dart';
 import '../widgets/app_background.dart';
 
 class MetaDataScreen extends StatefulWidget {
-  const MetaDataScreen({super.key});
+  final bool hideBackground;
+  const MetaDataScreen({super.key, this.hideBackground = false});
 
   @override
   State<MetaDataScreen> createState() => _MetaDataScreenState();
@@ -14,6 +15,38 @@ class MetaDataScreen extends StatefulWidget {
 class _MetaDataScreenState extends State<MetaDataScreen> {
   @override
   Widget build(BuildContext context) {
+    if (widget.hideBackground) {
+      return DefaultTabController(
+        length: 3,
+        child: Column(
+          children: [
+            Container(
+              color: Colors.transparent,
+              child: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.directions_car), text: 'Cars'),
+                  Tab(icon: Icon(Icons.category), text: 'Categories'),
+                  Tab(icon: Icon(Icons.person), text: 'Drivers'),
+                ],
+                labelColor: Color(0xFF2575FC),
+                unselectedLabelColor: Colors.white60,
+                indicatorColor: Color(0xFF2575FC),
+              ),
+            ),
+            const Expanded(
+              child: TabBarView(
+                children: [
+                  CarsTab(),
+                  CategoriesTab(),
+                  DriversScreen(hideAppBar: true),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return AppBackground(
       child: DefaultTabController(
         length: 3,
@@ -24,6 +57,7 @@ class _MetaDataScreenState extends State<MetaDataScreen> {
             elevation: 0,
             foregroundColor: Colors.white,
             title: const Text('Meta Data'),
+            automaticallyImplyLeading: true,
             bottom: const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.directions_car), text: 'Cars'),

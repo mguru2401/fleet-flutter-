@@ -11,6 +11,7 @@ import 'user_salary_screen.dart';
 import 'earnings_screen.dart';
 import 'advances_screen.dart';
 import 'settings_screen.dart';
+import 'meta_data_screen.dart';
 import '../widgets/app_background.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -59,7 +60,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const TripsScreen(),
         const ExpensesScreen(),
         const UserSalaryScreen(),
-        SettingsScreen(role: _role),
+        const SettingsScreen(role: 'driver'),
       ];
     }
     return [
@@ -67,7 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const TripsScreen(),
       const ExpensesScreen(),
       const AdminSalaryScreen(),
-      SettingsScreen(role: _role),
+      const SettingsScreen(role: 'admin'),
     ];
   }
 
@@ -103,19 +104,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           foregroundColor: Colors.white,
           title: Padding(
             padding: const EdgeInsets.only(top: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${_getGreeting()},',
-                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+            child: _selectedIndex == 4
+              ? const Text(
+                  'Settings',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_getGreeting()},',
+                      style: const TextStyle(fontSize: 14, color: Colors.white70),
+                    ),
+                    Text(
+                      _userName.isNotEmpty ? _userName : 'User',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ],
                 ),
-                Text(
-                  _userName.isNotEmpty ? _userName : 'User',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-              ],
-            ),
           ),
           automaticallyImplyLeading: false,
         ),

@@ -13,6 +13,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isFetchingSalary = false;
+  bool _showMetaData = false;
 
   Future<void> _showDesiredSalaryDialog(BuildContext context) async {
     setState(() => _isFetchingSalary = true);
@@ -107,15 +108,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showMetaData) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: InkWell(
+              onTap: () => setState(() => _showMetaData = false),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_back_ios, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  const Text('Back to Settings', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ],
+              ),
+            ),
+          ),
+          const Expanded(child: MetaDataScreen(hideBackground: true)),
+        ],
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
-        title: const Text('Settings'),
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           ListView(
@@ -126,13 +141,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context,
                   icon: Icons.data_usage,
                   title: 'Meta Data',
-                  subtitle: 'Manage Cars and Working Days',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MetaDataScreen()),
-                    );
-                  },
+                  subtitle: 'Manage Cars and Categories',
+                  onTap: () => setState(() => _showMetaData = true),
                 ),
                 const Divider(color: Colors.white24),
               ],

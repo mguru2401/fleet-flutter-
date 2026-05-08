@@ -190,19 +190,6 @@ class _TripsScreenState extends State<TripsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
-        title: const Text('Trips History'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchTrips,
-          ),
-        ],
-      ),
       body: Column(
         children: [
           // Filter Bar
@@ -215,72 +202,62 @@ class _TripsScreenState extends State<TripsScreen> {
             child: Column(
               children: [
                 // Category Filter
-                SizedBox(
-                  height: 40,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _validCategories.length,
-                    itemBuilder: (context, index) {
-                      final cat = _validCategories[index];
-                      final isSelected = _selectedCategory == cat;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(cat.toUpperCase()),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedCategory = cat);
-                              _fetchTrips();
-                            }
-                          },
-                          selectedColor: const Color(0xFF2575FC),
-                          backgroundColor: Colors.white.withOpacity(0.1),
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _searchController,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Search drop location...',
-                    hintStyle: const TextStyle(color: Colors.white54),
-                    prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: (value) => _fetchTrips(),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildDateButton(
-                      label: _startDate == null ? 'Start' : DateFormat('MMM dd').format(_startDate!),
-                      icon: Icons.calendar_today,
-                      onTap: () => _selectDate(true),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildDateButton(
-                      label: _endDate == null ? 'End' : DateFormat('MMM dd').format(_endDate!),
-                      icon: Icons.calendar_today,
-                      onTap: () => _selectDate(false),
-                    ),
-                  ],
-                ),
+              // Category Filter
+SizedBox(
+  height: 45,
+  child: ListView.builder(
+    scrollDirection: Axis.horizontal,
+    itemCount: _validCategories.length,
+    itemBuilder: (context, index) {
+      final cat = _validCategories[index];
+      final isSelected = _selectedCategory == cat;
+
+      return Padding(
+        padding: const EdgeInsets.only(right: 10),
+        child: ChoiceChip(
+          label: Text(
+            cat.toUpperCase(),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (selected) {
+              setState(() => _selectedCategory = cat);
+              _fetchTrips();
+            }
+          },
+
+          // ✅ Selected chip color
+          selectedColor: const Color(0xFF2575FC),
+
+          // ✅ Unselected chip (FIXED VISIBILITY)
+          backgroundColor: const Color(0xFF2A2A2A),
+
+          // ✅ Border styling
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isSelected
+                  ? const Color(0xFF2575FC)
+                  : Colors.white24,
+            ),
+          ),
+
+          // ✅ Better spacing
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+
+          // ✅ Elevation for selected chip
+          elevation: isSelected ? 4 : 0,
+          shadowColor: Colors.black,
+        ),
+      );
+    },
+  ),
+),
               ],
             ),
           ),

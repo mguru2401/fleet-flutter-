@@ -53,13 +53,13 @@ class _EarningsScreenState extends State<EarningsScreen> with TickerProviderStat
         _isLoading = false;
       });
       
-      final progress = (_dashboardData!.todayRevenue / _dashboardData!.targetRevenuePerDay).clamp(0.0, 2.0);
+      final progress = (_dashboardData!.todayRevenue / _dashboardData!.todayTarget).clamp(0.0, 2.0);
       _progressAnimation = Tween<double>(begin: 0, end: progress).animate(
         CurvedAnimation(parent: _progressController, curve: Curves.easeOutCubic),
       );
       _progressController.forward(from: 0);
 
-      if (_dashboardData!.todayRevenue >= _dashboardData!.targetRevenuePerDay && !EarningsScreen._hasCelebratedThisSession) {
+      if (_dashboardData!.todayRevenue >= _dashboardData!.todayTarget && !EarningsScreen._hasCelebratedThisSession) {
         EarningsScreen._hasCelebratedThisSession = true;
         _confettiController.play();
       }
@@ -223,7 +223,7 @@ class _EarningsScreenState extends State<EarningsScreen> with TickerProviderStat
 
   Widget _buildDailyTargetProgress() {
     final data = _dashboardData!;
-    final isExceeded = data.todayRevenue >= data.targetRevenuePerDay;
+    final isExceeded = data.todayRevenue >= data.todayTarget;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -243,7 +243,7 @@ class _EarningsScreenState extends State<EarningsScreen> with TickerProviderStat
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               Text(
-                '₹${data.todayRevenue.toStringAsFixed(0)} / ₹${data.targetRevenuePerDay.toStringAsFixed(0)}',
+                '₹${data.todayRevenue.toStringAsFixed(0)} / ₹${data.todayTarget.toStringAsFixed(0)}',
                 style: TextStyle(
                   color: isExceeded ? Colors.greenAccent : Colors.white70,
                   fontWeight: FontWeight.bold,
@@ -366,7 +366,8 @@ class _EarningsScreenState extends State<EarningsScreen> with TickerProviderStat
   }
 
   Widget _buildDailyEarningsGrid() {
-    final details = _dashboardData!.salaryDetails;
+    final data = _dashboardData!;
+    final details = data.salaryDetails;
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -375,10 +376,10 @@ class _EarningsScreenState extends State<EarningsScreen> with TickerProviderStat
       mainAxisSpacing: 16,
       childAspectRatio: 1.5,
       children: [
-        _buildEarningItem('Total Earnings', details.totalTodaySalary, Icons.account_balance_wallet, Colors.blue),
+        _buildEarningItem('Today Total Earning', data.todaySalary, Icons.account_balance_wallet, Colors.blue),
         _buildEarningItem('Base Salary', details.baseSalary, Icons.payments, Colors.orange),
         _buildEarningItem('Incentives', details.incentiveSalary, Icons.trending_up, Colors.green),
-        _buildEarningItem('Partner (30%)', details.olaUberSalary, Icons.handshake, Colors.purple),
+        _buildEarningItem('Incentive Eligible', details.eligibleAmount, Icons.stars, Colors.purple),
       ],
     );
   }

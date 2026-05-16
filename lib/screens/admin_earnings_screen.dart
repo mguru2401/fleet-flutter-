@@ -188,7 +188,7 @@ class _AdminEarningsScreenState extends State<AdminEarningsScreen> {
               children: [
                 const Text('Today Earning', style: TextStyle(color: Colors.white70, fontSize: 10)),
                 AnimatedCounter(
-                  value: driver['today_salary'],
+                  value: double.tryParse((driver['today_salary'] ?? 0).toString()) ?? 0.0,
                   prefix: '₹',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.greenAccent),
                 ),
@@ -283,9 +283,9 @@ class _AdminEarningsScreenState extends State<AdminEarningsScreen> {
   }
 
   Widget _buildDailyTargetProgressBar(Map<String, dynamic> driver) {
-    final revenue = (driver['today_revenue'] as num).toDouble();
-    final target = (driver['target_revenue_per_day'] as num).toDouble();
-    final progress = (revenue / target).clamp(0.0, 1.0);
+    final revenue = double.tryParse((driver['today_revenue'] ?? 0).toString()) ?? 0.0;
+    final target = double.tryParse((driver['target_revenue_per_day'] ?? 0).toString()) ?? 0.0;
+    final progress = target > 0 ? (revenue / target).clamp(0.0, 1.0) : 0.0;
     final isExceeded = revenue >= target;
 
     return Column(
@@ -330,6 +330,7 @@ class _AdminEarningsScreenState extends State<AdminEarningsScreen> {
   }
 
   Widget _buildDetailRow(String label, dynamic value, {bool isBold = false, Color? color}) {
+    final numValue = double.tryParse((value ?? 0).toString()) ?? 0.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -337,7 +338,7 @@ class _AdminEarningsScreenState extends State<AdminEarningsScreen> {
         children: [
           Text(label, style: TextStyle(fontSize: 13, color: isBold ? Colors.white : Colors.white70)),
           Text(
-            '₹${(value as num).toStringAsFixed(0)}',
+            '₹${numValue.toStringAsFixed(0)}',
             style: TextStyle(
               fontSize: 13, 
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,

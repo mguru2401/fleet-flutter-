@@ -150,7 +150,7 @@ class _UserSalaryScreenState extends State<UserSalaryScreen> {
   }
 
   Widget _buildMainSummaryCard() {
-    final payable = ((_salaryData!['final_company_payable'] ?? 0) as num).toDouble();
+    final payable = double.tryParse((_salaryData!['final_company_payable'] ?? 0).toString()) ?? 0.0;
     final status = _salaryData!['status'] == 'paid' ? 'SETTLED' : 'PENDING';
     
     return Container(
@@ -208,10 +208,25 @@ class _UserSalaryScreenState extends State<UserSalaryScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          const Divider(color: Colors.white10),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSummaryStat('Target Revenue', _salaryData!['targeted_revenue_mtd']),
+              _buildSummaryStat(
+                'Actual Revenue', 
+                _salaryData!['actual_revenue_mtd'], 
+                color: (double.tryParse((_salaryData!['actual_revenue_mtd'] ?? 0).toString()) ?? 0) >= 
+                       (double.tryParse((_salaryData!['targeted_revenue_mtd'] ?? 0).toString()) ?? 0) 
+                  ? Colors.greenAccent 
+                  : Colors.orangeAccent,
+              ),
+            ],
+          ),
           if (_salaryData!['status'] == 'paid' && _salaryData!['payment_method'] != null) ...[
             const SizedBox(height: 16),
-            const Divider(color: Colors.white10),
-            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -225,7 +240,32 @@ class _UserSalaryScreenState extends State<UserSalaryScreen> {
     );
   }
 
+  Widget _buildSummaryStat(String label, dynamic value, {Color? color}) {
+    final numValue = double.tryParse((value ?? 0).toString()) ?? 0.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        const SizedBox(height: 4),
+        Text(
+          '₹${numValue.toStringAsFixed(0)}',
+          style: TextStyle(
+            color: color ?? Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDetailCard() {
+    final breakdown = _salaryData!['breakdown'] ?? {};
+    final basePay = double.tryParse((breakdown['base_pay'] ?? 0).toString()) ?? 0.0;
+    final incentives = double.tryParse((breakdown['incentives'] ?? 0).toString()) ?? 0.0;
+    final totalEarned = basePay + incentives;
+    final netCash = double.tryParse((_salaryData!['net_cash_in_hand'] ?? 0).toString()) ?? 0.0;
+
     return Card(
       color: Colors.white.withOpacity(0.05),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white10)),
@@ -234,19 +274,103 @@ class _UserSalaryScreenState extends State<UserSalaryScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildFinanceRow('Total Salary Earned', _salaryData!['total_salary_earned'], color: Colors.greenAccent),
-            _buildFinanceRow('Total Advances', _salaryData!['total_advances'], color: Colors.redAccent, isDeduction: true),
-            _buildFinanceRow('Cash Collected', _salaryData!['cash_revenue_collected'], color: Colors.redAccent, isDeduction: true),
+            _buildFinanceRow('Total Salary Earned', totalEarned, color: Colors.greenAccent),
+            _buildFinanceRow(
+              'Total Advances', 
+              _salaryData!['total_advances'], 
+              color: Colors.redAccent, 
+              isDeduction: true,
+              onInfo: () => _showInfoModal('Advances', _salaryData!['advances_list']),
+            ),
+            _buildFinanceRow(
+              'Expenses', 
+              _salaryData!['total_expenses'], 
+              color: Colors.redAccent, 
+              isDeduction: true,
+              onInfo: () => _showInfoModal('Expenses', _salaryData!['expense_list']),
+            ),
+            _buildFinanceRow(
+              'Cash Collected', 
+              _salaryData!['cash_revenue_collected'], 
+              color: Colors.redAccent, 
+              isDeduction: true,
+              onInfo: () => _showInfoModal('Ola/Uber Trips', _salaryData!['ola_uber_trips_list']),
+            ),
             const Divider(color: Colors.white10, height: 24),
-            _buildFinanceRow('Amount with You (Cash)', _salaryData!['amount_remaining_in_hand'], color: Colors.orangeAccent),
+            _buildFinanceRow(
+              'Remaining Cash in Hand', 
+              netCash, 
+              color: netCash >= 0 ? Colors.orangeAccent : Colors.redAccent,
+              isBold: true,
+            ),
           ],
         ),
       ),
     );
   }
 
+  void _showInfoModal(String title, List<dynamic> items) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0e3a35),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 16),
+              if (items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Text('No records found', style: TextStyle(color: Colors.white54)),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const Divider(color: Colors.white10),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          item['description'] ?? item['drop_location'] ?? 'N/A',
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          item['date'] ?? item['pick_up_date'] ?? '',
+                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                        trailing: Text(
+                          '₹${(item['amount'] ?? item['net_amount'] ?? 0).toStringAsFixed(0)}',
+                          style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white12),
+                  child: const Text('Close', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildBreakdownCard() {
-    final breakdown = _salaryData!['breakdown'];
+    final breakdown = _salaryData!['breakdown'] ?? {};
     return Card(
       color: Colors.white.withOpacity(0.05),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white10)),
@@ -258,23 +382,36 @@ class _UserSalaryScreenState extends State<UserSalaryScreen> {
           children: [
             const Text('Salary Breakdown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
             const SizedBox(height: 16),
-            _buildBreakdownRow('Base Pay', breakdown['base_pay']),
-            _buildBreakdownRow('Performance Incentives', breakdown['incentives']),
-            _buildBreakdownRow('Partner Commissions', breakdown['ola_uber_commission']),
+            _buildBreakdownRow('Base Pay', '₹${(double.tryParse((breakdown['base_pay'] ?? 0).toString()) ?? 0.0).toStringAsFixed(0)}'),
+            _buildBreakdownRow('Incentive Eligible Amount', '₹${(double.tryParse((breakdown['eligible_amount'] ?? 0).toString()) ?? 0.0).toStringAsFixed(0)}'),
+            _buildBreakdownRow('Performance Incentives', '₹${(double.tryParse((breakdown['incentives'] ?? 0).toString()) ?? 0.0).toStringAsFixed(0)}'),
+            const Divider(color: Colors.white10, height: 24),
+            _buildBreakdownRow('Total Working Days', '${_salaryData!['total_working_days_mtd'] ?? 0} Days', isBold: true),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFinanceRow(String label, dynamic value, {Color? color, bool isBold = false, bool isDeduction = false}) {
-    final numValue = (value as num?) ?? 0;
+  Widget _buildFinanceRow(String label, dynamic value, {Color? color, bool isBold = false, bool isDeduction = false, VoidCallback? onInfo}) {
+    final numValue = double.tryParse((value ?? 0).toString()) ?? 0.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: isBold ? Colors.white : Colors.white70)),
+          Row(
+            children: [
+              Text(label, style: TextStyle(fontSize: 14, color: isBold ? Colors.white : Colors.white70)),
+              if (onInfo != null) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: onInfo,
+                  child: const Icon(Icons.info_outline, size: 14, color: Colors.blueAccent),
+                ),
+              ],
+            ],
+          ),
           Text(
             '${isDeduction ? "-" : ""}₹${numValue.toStringAsFixed(0)}',
             style: TextStyle(
@@ -288,17 +425,16 @@ class _UserSalaryScreenState extends State<UserSalaryScreen> {
     );
   }
 
-  Widget _buildBreakdownRow(String label, dynamic value) {
-    final numValue = (value as num?) ?? 0;
+  Widget _buildBreakdownRow(String label, String value, {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Colors.white54)),
+          Text(label, style: TextStyle(fontSize: 13, color: isBold ? Colors.white : Colors.white54, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           Text(
-            '₹${numValue.toStringAsFixed(0)}',
-            style: const TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w500),
+            value,
+            style: TextStyle(fontSize: 13, color: isBold ? Colors.white : Colors.white70, fontWeight: isBold ? FontWeight.bold : FontWeight.w500),
           ),
         ],
       ),
